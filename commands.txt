@@ -1,0 +1,312 @@
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+
+minikube start --vm-driver=hyperv --cpus 4 --memory 4096
+
+================
+
+kube-system and kube-public are the 2 namespaces used by kubernetes
+
+kubectl describe svc kube-dns
+
+Error from server (Notfound): services "kube-dns" not found
+
+kubectl describe svc kube-dns -n kube-system
+
+================
+
+kubectl exec -it webapp-858957ccc9-p4lgp -- sh
+
+/ # ls
+bin    dev    etc    home   lib    media  mnt    proc   root   run    sbin   srv    sys    tmp    usr    var
+/ # cat /etc/resolv.conf
+nameserver 10.96.0.10
+search default.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+
+nameserver is nothing but kube-dns server pod and its ip address is 10.96.0.10
+
+when you do nslookup in the shell of the webapp pod like
+
+/ # nslookup database
+nslookup: can't resolve '(null)': Name does not resolve
+
+Name:      database
+Address 1: 10.96.192.37 database.default.svc.cluster.local
+/ # exit
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl get all
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/mysql                     1/1     Running   0          34m
+pod/queue                     1/1     Running   0          34m
+pod/webapp-858957ccc9-p4lgp   1/1     Running   0          34m
+pod/webapp-858957ccc9-s2kzt   1/1     Running   0          34m
+
+NAME                      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+service/database          ClusterIP   10.96.192.37   <none>        3306/TCP         34m
+service/fleetman-queue    NodePort    10.96.180.2    <none>        8161:30010/TCP   34m
+service/fleetman-webapp   NodePort    10.96.191.90   <none>        80:30080/TCP     34m
+service/kubernetes        ClusterIP   10.96.0.1      <none>        443/TCP          37m
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/webapp   2/2     2            2           34m
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/webapp-858957ccc9   2         2         2       34m
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking>
+
+=================
+
+
+spec:
+	containers:
+    - name: 
+	  image: 
+	  resources:
+		requests:
+		  memory: 300Mi
+		  cpu: 100m
+	    limits:
+		  memory: 500Mi
+		  cpu: 200m  #200 milli cores
+		  
+MEMORY LIMITS
+if the actual MEMORY usage of the container at run time
+exceeds the limit, the container will be KILLED.
+
+i.e. the pod will remain; the container will therefore attempt to restart		  
+
+CPU LIMITS
+if the actual CPU usage of the container at run time
+exceeds the limit, the CPU will be CLAMPED and the container
+will continue to run
+
+i.e. the pod will remain; the container will therefore attempt to restart
+
+500Mi = i indicates to the power of 2. meaning 500 * 1024 KBi = 500 * 1024 * 1024 Bytes
+500M = meaning 500 * 1000 KB = 500 * 1000 * 1000 Bytes
+=================
+
+minikube addons list
+
+minikube addons enable metrics-server
+minikube addons enable dashboard
+
+kubectl get all -n kube-system
+
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/coredns-6955765f44-mg9l6           1/1     Running   0          9m
+pod/coredns-6955765f44-xd8d4           1/1     Running   0          9m
+pod/etcd-minikube                      1/1     Running   0          8m45s
+pod/kube-addon-manager-minikube        1/1     Running   0          8m45s
+pod/kube-apiserver-minikube            1/1     Running   0          8m44s
+pod/kube-controller-manager-minikube   1/1     Running   0          8m45s
+pod/kube-proxy-l4wqr                   1/1     Running   0          9m
+pod/kube-scheduler-minikube            1/1     Running   0          8m45s
+pod/metrics-server-6754dbc9df-5qhb2    1/1     Running   0          7m51s
+pod/storage-provisioner                1/1     Running   0          8m49s
+
+NAME                     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                  AGE
+service/kube-dns         ClusterIP   10.96.0.10     <none>        53/UDP,53/TCP,9153/TCP   9m6s
+service/metrics-server   ClusterIP   10.96.110.97   <none>        443/TCP                  7m51s
+
+NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                 AGE
+daemonset.apps/kube-proxy   1         1         1       1            1           beta.kubernetes.io/os=linux   9m5s
+
+NAME                             READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/coredns          2/2     2            2           9m6s
+deployment.apps/metrics-server   1/1     1            1           7m51s
+
+NAME                                        DESIRED   CURRENT   READY   AGE
+replicaset.apps/coredns-6955765f44          2         2         2       9m1s
+replicaset.apps/metrics-server-6754dbc9df   1         1         1       7m51s
+
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl apply -f .
+pod/mysql created
+service/database created
+deployment.apps/webapp created
+pod/queue created
+service/fleetman-webapp created
+service/fleetman-queue created
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+error: metrics not available yet
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+error: metrics not available yet
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+error: metrics not available yet
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+error: metrics not available yet
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+W1016 10:42:46.783524     612 top_pod.go:265] Metrics not available for pod default/mysql, age: 2m14.7835246s
+error: Metrics not available for pod default/mysql, age: 2m14.7835246s
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+W1016 10:42:53.259295   11096 top_pod.go:265] Metrics not available for pod default/mysql, age: 2m21.2592959s
+error: Metrics not available for pod default/mysql, age: 2m21.2592959s
+PS D:\Users\Anand\aws_kubernetes\Chapter 10 Networking> kubectl top pod
+NAME                      CPU(cores)   MEMORY(bytes)
+mysql                     24m          189Mi
+webapp-858957ccc9-gpzc4   0m           2Mi
+webapp-858957ccc9-xq7kz   0m           2Mi
+
+minikube dashboard
+http://127.0.0.1:1152/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/#/overview?namespace=default
+
+========
+
+tuning spring boot application
+
+-Xmx=1Gb
+
+though you mention 1 Gb heap size, Java will not immediately create heap of this size.
+it starts with small value and if required, will increase and reach 1 Gb.
+
+We should not keep it to small else GC will run frequently and this will affect pod performance
+
+from Java 7 to 9, if no -Xmx is specified,
+Java will use up to 1/4 of the host RAM as its maximum heap.
+
+This means regardless of the size of your node, you might only get
+4 containers
+
+so we need to review the command line args for -Xmx value
+
+So in Dockerfile the line was 
+
+CMD ["java", "-jar","webapp.jar"]
+
+change this to 
+
+CMD ["java", "-Xmx50m","-jar","webapp.jar"]
+
+so setting heap size to 50 Mb
+
+Also, once you have the metric server up,
+
+kubectl top pod
+
+this returns all the pods with the amount of memory used
+PS C:\Windows\system32> kubectl top pod
+NAME                      CPU(cores)   MEMORY(bytes)
+mysql                     0m           193Mi
+queue                     2m           253Mi
+webapp-858957ccc9-gpzc4   0m           2Mi
+webapp-858957ccc9-xq7kz   0m           2Mi
+PS C:\Windows\system32>
+
+using the above CPU and MEMORY values, you can change the values in the resources section in the yaml files
+for each container
+
+PS C:\Windows\system32> kubectl describe node minikube
+Name:               minikube
+Roles:              master
+Labels:             beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=minikube
+                    kubernetes.io/os=linux
+                    node-role.kubernetes.io/master=
+Annotations:        kubeadm.alpha.kubernetes.io/cri-socket: /var/run/dockershim.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Sat, 16 Oct 2021 10:23:47 +0530
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  minikube
+  AcquireTime:     <unset>
+  RenewTime:       Sat, 16 Oct 2021 11:30:46 +0530
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       -------
+  MemoryPressure   False   Sat, 16 Oct 2021 11:29:36 +0530   Sat, 16 Oct 2021 10:23:43 +0530   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure     False   Sat, 16 Oct 2021 11:29:36 +0530   Sat, 16 Oct 2021 10:23:43 +0530   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure      False   Sat, 16 Oct 2021 11:29:36 +0530   Sat, 16 Oct 2021 10:23:43 +0530   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready            True    Sat, 16 Oct 2021 11:29:36 +0530   Sat, 16 Oct 2021 10:24:18 +0530   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  192.168.110.36
+  Hostname:    minikube
+Capacity:
+  cpu:                4
+  ephemeral-storage:  17784772Ki
+  hugepages-2Mi:      0
+  memory:             4034848Ki
+  pods:               110
+Allocatable:
+  cpu:                4
+  ephemeral-storage:  17784772Ki
+  hugepages-2Mi:      0
+  memory:             4034848Ki
+  pods:               110
+System Info:
+  Machine ID:                 6ce7c912505b468892e56dfcaef6f10e
+  System UUID:                d2d280b4-d76d-f244-8a51-75e6b76650a3
+  Boot ID:                    c1ace7e3-7c27-4221-a2e7-734819907b50
+  Kernel Version:             4.19.81
+  OS Image:                   Buildroot 2019.02.7
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  docker://19.3.5
+  Kubelet Version:            v1.17.0
+  Kube-Proxy Version:         v1.17.0
+Non-terminated Pods:          (16 in total)
+  Namespace                   Name                                          CPU Requests  CPU Limits  Memory Requests  Memory Limits  AGE
+  ---------                   ----                                          ------------  ----------  ---------------  -------------  ---
+  default                     mysql                                         0 (0%)        0 (0%)      0 (0%)           0 (0%)         50m
+  default                     queue                                         0 (0%)        0 (0%)      0 (0%)           0 (0%)         50m
+  default                     webapp-858957ccc9-gpzc4                       0 (0%)        0 (0%)      0 (0%)           0 (0%)         50m
+  default                     webapp-858957ccc9-xq7kz                       0 (0%)        0 (0%)      0 (0%)           0 (0%)         50m
+  kube-system                 coredns-6955765f44-mg9l6                      100m (2%)     0 (0%)      70Mi (1%)        170Mi (4%)     66m
+  kube-system                 coredns-6955765f44-xd8d4                      100m (2%)     0 (0%)      70Mi (1%)        170Mi (4%)     66m
+  kube-system                 etcd-minikube                                 0 (0%)        0 (0%)      0 (0%)           0 (0%)         66m
+  kube-system                 kube-addon-manager-minikube                   5m (0%)       0 (0%)      50Mi (1%)        0 (0%)         66m
+  kube-system                 kube-apiserver-minikube                       250m (6%)     0 (0%)      0 (0%)           0 (0%)         66m
+  kube-system                 kube-controller-manager-minikube              200m (5%)     0 (0%)      0 (0%)           0 (0%)         66m
+  kube-system                 kube-proxy-l4wqr                              0 (0%)        0 (0%)      0 (0%)           0 (0%)         66m
+  kube-system                 kube-scheduler-minikube                       100m (2%)     0 (0%)      0 (0%)           0 (0%)         66m
+  kube-system                 metrics-server-6754dbc9df-5qhb2               0 (0%)        0 (0%)      0 (0%)           0 (0%)         65m
+  kube-system                 storage-provisioner                           0 (0%)        0 (0%)      0 (0%)           0 (0%)         66m
+  kubernetes-dashboard        dashboard-metrics-scraper-7b64584c5c-g2nrk    0 (0%)        0 (0%)      0 (0%)           0 (0%)         64m
+  kubernetes-dashboard        kubernetes-dashboard-79d9cd965-tz8fx          0 (0%)        0 (0%)      0 (0%)           0 (0%)         64m
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests    Limits
+  --------           --------    ------
+  cpu                755m (18%)  0 (0%)
+  memory             190Mi (4%)  340Mi (8%)
+  ephemeral-storage  0 (0%)      0 (0%)
+  hugepages-2Mi      0 (0%)      0 (0%)
+Events:              <none>
+
+===========
+horizontal autoscaling
+
+kubectl get hpa
+
+kubectl autoscala deployment api-gateway --cpu-percent 400 --min 1 --max 4 
+
+kubectl describe hpa api-gateway
+
+OR
+ 
+you can write in yaml as
+
+metadata:
+	name: api-gateway
+	namespace: default
+	
+spec:
+	maxReplicas: 4
+	minReplicas: 1
+	scaleTargetRef:
+		apiVersion: extensions/v1beta1
+		kind: Deployment
+		name: api-gateway
+	targetCPUUtilizationPercentage: 400
+status:
+	currentCPUUtilizationPercentage: 10
+	currentReplicas: 1
+	desiredReplicas: 1
+	
+==========================
+Config Maps
+
+kubectl get cm
+
